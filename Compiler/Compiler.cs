@@ -5,7 +5,8 @@ namespace Compiler
 {
     public class Compiler
     {
-        private const string unexpectedTokenErrorMsg = "Encountered with an unexpected token";
+        private const string unexpectedTokenErrorMsg = "Encountered with an unexpected token. The expected token after the pointed token was";
+        private const string unIdentifiedTokenErrorMsg = "Encountered with an unidentified token. The pointed token is not met by compiler.";
         private const string succesfullCompileMsg = "Source code compiled successfuly.";
         private const string smallCharacters = "abcdefghijklmnopqrstuvwxyz";
         private const string numbers = "0123456789";
@@ -20,33 +21,90 @@ namespace Compiler
             Reset();
             _sourceCode = sourceCode;
             if(P()) Console.WriteLine(succesfullCompileMsg);
-            else Console.WriteLine(errorMsg);
+            else
+            {
+                var lineWithError = _sourceCode[_lineIndex];
+                string pointer = "";
+                for (int i = 0; i < lineWithError.Length; i++)
+                {
+                    if (i == _charIndex) pointer += "^";
+                    else pointer += " ";
+                }
+                Console.WriteLine(lineWithError);
+                Console.WriteLine(pointer);
+                Console.WriteLine(errorMsg);
+            }
         }
         
         private bool P()
         {
-            //{C}
-            while (C());
-
-            if (!TryGetNextToken(out char token))
+            while (true)
             {
+                if (!TryLookAHead(out char nextToken))
+                {
+                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or '.'.";
+                    return false;
+                }
+
+                if (nextToken == '.')
+                {
+                    return true;
+                }
+
+                if (!C())
+                {
+                    return false;
+                }
+            }
+        }
+
+        private bool C()
+        {
+            if (!TryLookAHead(out char nextToken))
+            {
+                errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>'.";
                 return false;
             }
             
-            //'.'
-            if (token != '.')
-            {
-                return false;
-            }
-
-            return true;
-        }
-    
-        private bool C()
-        {
             //I or W or A or Ç or G
-            if (!I() && !W() && !A() && !Ç() && G())
+            if (nextToken == '[')
             {
+                if (!I())
+                {
+                    return false;
+                }
+            }
+            else if (nextToken == '{')
+            {
+                if (!W())
+                {
+                    return false;
+                }
+            }
+            else if (IsSmallLetter(nextToken))
+            {
+                if (!A())
+                {
+                    return false;
+                }
+            }
+            else if (nextToken == '<')
+            {
+                if (!Ç())
+                {
+                    return false;
+                }
+            }
+            else if (nextToken == '>')
+            {
+                if (!G())
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>'.";
                 return false;
             }
 
@@ -55,14 +113,12 @@ namespace Compiler
 
         private bool I()
         {
-            if (!TryGetNextToken(out char token))
-            {
-                return false;
-            }
-            
             //'['
-            if (token != '[')
+            RevertPoint revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out char token) || token != '[')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '.'.";
                 return false;
             }
             
@@ -71,29 +127,28 @@ namespace Compiler
             {
                 return false;
             }
-                
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
             
             //?'
-            if (token != '?')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != '?')
             {
-                return false;
-            }
-            
-            //C
-            if (!C())
-            {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '?'.";
                 return false;
             }
             
             //{C}
-            while (C());
+            do
+            { 
+                revertPoint = CreateRevertPoint();
+            } while (C());
+            Revert(revertPoint);
             
+            revertPoint = CreateRevertPoint();
             if (!TryGetNextToken(out token))
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " ':' or ']'.";
                 return false;
             }
             
@@ -107,16 +162,25 @@ namespace Compiler
                 }
                 
                 //{C}
-                while (C());
+                do
+                { 
+                    revertPoint = CreateRevertPoint();
+                } while (C());
+                Revert(revertPoint);
                 
                 //']'
+                revertPoint = CreateRevertPoint();
                 if (token != ']')
                 {
+                    Revert(revertPoint);
+                    errorMsg = unexpectedTokenErrorMsg + " ']'.";
                     return false;
                 }
             }
             else if (token != ']')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " ':' or ']'.";
                 return false;
             }
 
@@ -125,14 +189,12 @@ namespace Compiler
         
         private bool W()
         {
-            if (!TryGetNextToken(out char token))
-            {
-                return false;
-            }
-            
             //'{'
-            if (token != '{')
+            RevertPoint revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out char token) && token != '{')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '{'.";
                 return false;
             }
             
@@ -141,15 +203,13 @@ namespace Compiler
             {
                 return false;
             }
-            
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
-            
+
             //'?'
-            if (token != '?')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != '?')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '?'.";
                 return false;
             }
             
@@ -160,11 +220,18 @@ namespace Compiler
             }
             
             //{C}
-            while (C());
+            do
+            { 
+                revertPoint = CreateRevertPoint();
+            } while (C());
+            Revert(revertPoint);
 
             //'}'
-            if (token != '}')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != '}')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '}'.";
                 return false;
             }
 
@@ -173,25 +240,22 @@ namespace Compiler
 
         private bool A()
         {
-            if (!TryGetNextToken(out char token))
-            {
-                return false;
-            }
             
             //K
-            if (!IsSmallCharacter(token))
+            RevertPoint revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out char token) || !IsSmallLetter(token))
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " a small letter.";
                 return false;
             }
-            
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
-            
+
             //'='
-            if (token != '=')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != '=')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '='.";
                 return false;
             }
             
@@ -200,15 +264,13 @@ namespace Compiler
             {
                 return false;
             }
-            
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
-            
+
             //';'
-            if (token != ';')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != ';')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " ';'.";
                 return false;
             }
 
@@ -217,14 +279,12 @@ namespace Compiler
 
         private bool Ç()
         {
-            if (!TryGetNextToken(out char token))
-            {
-                return false;
-            }
-            
             //'<'
-            if (token != '<')
+            RevertPoint revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out char token) || token != '<')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '<'.";
                 return false;
             }
 
@@ -232,15 +292,13 @@ namespace Compiler
             {
                 return false;
             }
-            
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
-            
+
             //';'
-            if (token != ';')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != ';')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " ';'.";
                 return false;
             }
 
@@ -249,36 +307,30 @@ namespace Compiler
 
         private bool G()
         {
-            if (!TryGetNextToken(out char token))
-            {
-                return false;
-            }
-            
             //'>'
-            if (token != '>')
+            RevertPoint revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out char token) || token != '>')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '>'.";
                 return false;
             }
-            
-            if (!TryGetNextToken(out token))
-            {
-                return false;
-            }
-            
+
             //K
-            if (!IsSmallCharacter(token))
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || !IsSmallLetter(token))
             {
-                return false;
-            }
-            
-            if (!TryGetNextToken(out token))
-            {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " a small letter.";
                 return false;
             }
             
             //';'
-            if (token != ';')
+            revertPoint = CreateRevertPoint();
+            if (!TryGetNextToken(out token) || token != ';')
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " ';'.";
                 return false;
             }
 
@@ -287,48 +339,62 @@ namespace Compiler
     
         private bool E()
         {
-            //'T'
+            //T
             if (!T())
             {
                 return false;
             }
             
             //{('+' | '-') T}
-            while (TryLookAHead(out char nextToken) && (nextToken == '+' || nextToken == '-'))
+            RevertPoint revertPoint;
+            do
             {
-                //We know next token exist and next token is '+' or '-' so straight get next token
-                TryGetNextToken(out char token);
+                //'+' or '-'
+                revertPoint = CreateRevertPoint();
+                if (!TryGetNextToken(out char token) || (token != '+' && token != '-'))
+                {
+                    break;
+                }
                 
-                //'T'
+                //T
                 if (!T())
                 {
-                    return false;
+                    break;
                 }
-            }
+                
+            } while (true);
+            Revert(revertPoint);
 
             return true;
         }
     
         private bool T()
         {
-            //'U'
+            //U
             if (!U())
             {
                 return false;
             }
 
-            //'{('*' | '/' | '%') U}'
-            while (TryLookAHead(out char nextToken) && (nextToken == '*' || nextToken == '/' || nextToken == '%'))
+            //{('*' | '/' | '%') U}
+            RevertPoint revertPoint;
+            do
             {
-                //We know next token exist and next token is '*' or '/' pr '%' so straight get next token
-                TryGetNextToken(out char token);
+                //'*' or '/' or '%'
+                revertPoint = CreateRevertPoint();
+                if (!TryGetNextToken(out char token) || (token != '*' && token != '/' && token != '%'))
+                {
+                    break;
+                }
                 
                 //U
                 if (!U())
                 {
                     return false;
                 }
-            }
+                
+            } while (true);
+            Revert(revertPoint);
 
             return true;
         }
@@ -340,14 +406,9 @@ namespace Compiler
             {
                 return false;
             }
-
-            if (!TryLookAHead(out char nextToken))
-            {
-                return false;
-            }
             
             //'^' or none
-            if (nextToken == '^')
+            if (TryLookAHead(out char nextToken) && nextToken == '^')
             {
                 //We know next token exist and next token is '^' so straight get next token
                 TryGetNextToken(out char token);
@@ -364,8 +425,11 @@ namespace Compiler
     
         private bool F()
         {
+            RevertPoint revertPoint = CreateRevertPoint();
             if (!TryGetNextToken(out char token))
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '(' or a small letter or a numeral.";
                 return false;
             }
             
@@ -378,26 +442,26 @@ namespace Compiler
                     return false;
                 }
 
-                if (!TryGetNextToken(out token))
-                {
-                    return false;
-                }
-                
                 //')'
-                if (token != ')')
+                revertPoint = CreateRevertPoint();
+                if (!TryGetNextToken(out token) || token != ')')
                 {
+                    Revert(revertPoint);
+                    errorMsg = unexpectedTokenErrorMsg + " ')'.";
                     return false;
                 }
             }
-            else if (!IsSmallCharacter(token) && !IsNumber(token))
+            else if (!IsSmallLetter(token) && !IsNumber(token))
             {
+                Revert(revertPoint);
+                errorMsg = unexpectedTokenErrorMsg + " '(' or a small letter or a numeral.";
                 return false;
             }
 
             return true;
         }
 
-        private bool IsSmallCharacter(char token)
+        private bool IsSmallLetter(char token)
         {
             for (int i = 0; i < smallCharacters.Length; i++)
             {
@@ -423,12 +487,17 @@ namespace Compiler
             {
                 if (++_charIndex >= _sourceCode[_lineIndex].Length)
                 {
-                    if (++_lineIndex > _sourceCode.Count)
+                    do
                     {
-                        Error(unexpectedTokenErrorMsg);
-                        c = ' ';
-                        return false;
-                    }
+                        if (++_lineIndex >= _sourceCode.Count)
+                        {
+                            errorMsg = unexpectedTokenErrorMsg;
+                            c = ' ';
+                            --_lineIndex;
+                            return false;
+                        }
+                    } while (_sourceCode[_lineIndex].Length == 0);
+
     
                     _charIndex = 0;
                 }
@@ -441,33 +510,40 @@ namespace Compiler
 
         private bool TryLookAHead(out char c)
         {
-            var rememberCharIndex = _charIndex;
-            var rememberLineIndex = _lineIndex;
-            
-            if (!TryGetNextToken(out c)) return false;
+            RevertPoint revertPoint = CreateRevertPoint();
+            bool result;
+            result = TryGetNextToken(out c);
+            Revert(revertPoint);
+            return result;
+        }
+        
+        private RevertPoint CreateRevertPoint()
+        {
+            return new RevertPoint(_lineIndex, _charIndex);
+        }
 
-            _charIndex = rememberCharIndex;
-            _lineIndex = rememberLineIndex;
-            return true;
-        }
-        
-        private void OneStepBack()
+        private void Revert(RevertPoint revertPoint)
         {
-            if (--_charIndex < 0)
-            {
-                _charIndex = _sourceCode[--_lineIndex].Length;
-            }
+            _lineIndex = revertPoint.lineIndex;
+            _charIndex = revertPoint.charIndex;
         }
-    
-        private void Error(string errorStr)
-        {
-            Console.WriteLine(errorStr);
-        }
-        
+
         private void Reset()
         {
             _lineIndex = 0;
             _charIndex = -1;
+        }
+
+        private struct RevertPoint
+        {
+            public int lineIndex;
+            public int charIndex;
+
+            public RevertPoint(int lineIndex, int charIndex)
+            {
+                this.lineIndex = lineIndex;
+                this.charIndex = charIndex;
+            }
         }
     }
 }
