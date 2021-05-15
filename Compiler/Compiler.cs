@@ -40,7 +40,7 @@ namespace Compiler
         {
             while (true)
             {
-                if (!TryLookAHead(out char nextToken))
+                if (!TryLookAHead(out char nextToken) || (nextToken != '[' && nextToken != '{' && !IsSmallLetter(nextToken) && nextToken != '<' && nextToken != '>' && nextToken != '.'))
                 {
                     errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or '.'.";
                     return false;
@@ -118,7 +118,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) || token != '[')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '.'.";
+                errorMsg = unexpectedTokenErrorMsg + " '['.";
                 return false;
             }
             
@@ -137,12 +137,22 @@ namespace Compiler
                 return false;
             }
             
-            //{C}
+            //C{C}
+            char nextToken;
             do
-            { 
-                revertPoint = CreateRevertPoint();
-            } while (C());
-            Revert(revertPoint);
+            {
+                if (!C())
+                {
+                    return false;
+                }
+                
+                if (!TryLookAHead(out nextToken))
+                {
+                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
+                    return false;
+                }
+                
+            } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
             
             revertPoint = CreateRevertPoint();
             if (!TryGetNextToken(out token))
@@ -155,18 +165,21 @@ namespace Compiler
             //':' or ']'
             if (token == ':')
             {
-                //C
-                if (!C())
-                {
-                    return false;
-                }
-                
-                //{C}
+                //C{C}
                 do
-                { 
-                    revertPoint = CreateRevertPoint();
-                } while (C());
-                Revert(revertPoint);
+                {
+                    if (!C())
+                    {
+                        return false;
+                    }
+                
+                    if (!TryLookAHead(out nextToken))
+                    {
+                        errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
+                        return false;
+                    }
+                
+                } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
                 
                 //']'
                 revertPoint = CreateRevertPoint();
@@ -213,18 +226,22 @@ namespace Compiler
                 return false;
             }
             
-            //C
-            if (!C())
-            {
-                return false;
-            }
-            
-            //{C}
+            //C{C}
+            char nextToken;
             do
-            { 
-                revertPoint = CreateRevertPoint();
-            } while (C());
-            Revert(revertPoint);
+            {
+                if (!C())
+                {
+                    return false;
+                }
+                
+                if (!TryLookAHead(out nextToken))
+                {
+                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
+                    return false;
+                }
+                
+            } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
 
             //'}'
             revertPoint = CreateRevertPoint();
@@ -240,7 +257,6 @@ namespace Compiler
 
         private bool A()
         {
-            
             //K
             RevertPoint revertPoint = CreateRevertPoint();
             if (!TryGetNextToken(out char token) || !IsSmallLetter(token))
@@ -345,25 +361,30 @@ namespace Compiler
                 return false;
             }
             
-            //{('+' | '-') T}
-            RevertPoint revertPoint;
-            do
+            if (TryLookAHead(out char nextToken))
             {
-                //'+' or '-'
-                revertPoint = CreateRevertPoint();
-                if (!TryGetNextToken(out char token) || (token != '+' && token != '-'))
-                {
-                    break;
-                }
+                errorMsg = unexpectedTokenErrorMsg + " unknown.";
+                return false;
+            }
+            
+            //{('+' | '-') T}
+            while (nextToken == '+' || nextToken == '-')
+            {
+                //We know next token exist and next token is '+' or '-' so straight get next token
+                TryGetNextToken(out char token);
                 
                 //T
                 if (!T())
                 {
-                    break;
+                    return false;
                 }
                 
-            } while (true);
-            Revert(revertPoint);
+                if (TryLookAHead(out nextToken))
+                {
+                    errorMsg = unexpectedTokenErrorMsg + " unknown.";
+                    return false;
+                }
+            }
 
             return true;
         }
@@ -375,17 +396,18 @@ namespace Compiler
             {
                 return false;
             }
-
-            //{('*' | '/' | '%') U}
-            RevertPoint revertPoint;
-            do
+            
+            if (TryLookAHead(out char nextToken))
             {
-                //'*' or '/' or '%'
-                revertPoint = CreateRevertPoint();
-                if (!TryGetNextToken(out char token) || (token != '*' && token != '/' && token != '%'))
-                {
-                    break;
-                }
+                errorMsg = unexpectedTokenErrorMsg + " unknown.";
+                return false;
+            }
+            
+            //{('*' | '/' | '%') U}
+            while (nextToken == '*' || nextToken == '/' || nextToken == '%')
+            {
+                //We know next token exist and next token is '*' or '/' or '%' so straight get next token
+                TryGetNextToken(out char token);
                 
                 //U
                 if (!U())
@@ -393,8 +415,12 @@ namespace Compiler
                     return false;
                 }
                 
-            } while (true);
-            Revert(revertPoint);
+                if (TryLookAHead(out nextToken))
+                {
+                    errorMsg = unexpectedTokenErrorMsg + " unknown.";
+                    return false;
+                }
+            }
 
             return true;
         }
