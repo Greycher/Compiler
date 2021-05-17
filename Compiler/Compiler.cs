@@ -5,7 +5,8 @@ namespace Compiler
 {
     public class Compiler
     {
-        private const string unexpectedTokenErrorMsg = "Encountered with an unexpected token. The expected token after the pointed token was";
+        private const string unexpectedTokenErrorMsgWithExplanation = "Encountered with an unexpected token. The expected token after the pointed token was";
+        private const string unexpectedTokenErrorMsg = "Encountered with an unexpected token.";
         private const string unIdentifiedTokenErrorMsg = "Encountered with an unidentified token. The pointed token is not met by compiler.";
         private const string succesfullCompileMsg = "Source code compiled successfuly.";
         private const string smallCharacters = "abcdefghijklmnopqrstuvwxyz";
@@ -42,7 +43,7 @@ namespace Compiler
             {
                 if (!TryLookAHead(out char nextToken) || (nextToken != '[' && nextToken != '{' && !IsSmallLetter(nextToken) && nextToken != '<' && nextToken != '>' && nextToken != '.'))
                 {
-                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or '.'.";
+                    errorMsg = unexpectedTokenErrorMsg;
                     return false;
                 }
 
@@ -62,7 +63,7 @@ namespace Compiler
         {
             if (!TryLookAHead(out char nextToken))
             {
-                errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>'.";
+                errorMsg = unexpectedTokenErrorMsg;
                 return false;
             }
             
@@ -104,7 +105,7 @@ namespace Compiler
             }
             else
             {
-                errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>'.";
+                errorMsg = unexpectedTokenErrorMsg;
                 return false;
             }
 
@@ -118,7 +119,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) || token != '[')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '['.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '['.";
                 return false;
             }
             
@@ -133,7 +134,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != '?')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '?'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '?'.";
                 return false;
             }
             
@@ -148,8 +149,7 @@ namespace Compiler
                 
                 if (!TryLookAHead(out nextToken))
                 {
-                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
-                    return false;
+                    break;
                 }
                 
             } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
@@ -158,7 +158,7 @@ namespace Compiler
             if (!TryGetNextToken(out token))
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " ':' or ']'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " ':' or ']'.";
                 return false;
             }
             
@@ -175,8 +175,7 @@ namespace Compiler
                 
                     if (!TryLookAHead(out nextToken))
                     {
-                        errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
-                        return false;
+                        break;
                     }
                 
                 } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
@@ -186,14 +185,14 @@ namespace Compiler
                 if (token != ']')
                 {
                     Revert(revertPoint);
-                    errorMsg = unexpectedTokenErrorMsg + " ']'.";
+                    errorMsg = unexpectedTokenErrorMsgWithExplanation + " ']'.";
                     return false;
                 }
             }
             else if (token != ']')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " ':' or ']'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " ':' or ']'.";
                 return false;
             }
 
@@ -207,7 +206,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) && token != '{')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '{'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '{'.";
                 return false;
             }
             
@@ -222,7 +221,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != '?')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '?'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '?'.";
                 return false;
             }
             
@@ -237,8 +236,7 @@ namespace Compiler
                 
                 if (!TryLookAHead(out nextToken))
                 {
-                    errorMsg = unexpectedTokenErrorMsg + " '[' or '{' or a small letter or '<' or '>' or ':' or ']'.";
-                    return false;
+                    break;
                 }
                 
             } while (nextToken == '[' || nextToken == '{' || IsSmallLetter(nextToken) || nextToken == '<' || nextToken == '>');
@@ -248,7 +246,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != '}')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '}'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '}'.";
                 return false;
             }
 
@@ -262,7 +260,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) || !IsSmallLetter(token))
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " a small letter.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " a small letter.";
                 return false;
             }
 
@@ -271,7 +269,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != '=')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '='.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '='.";
                 return false;
             }
             
@@ -286,7 +284,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != ';')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " ';'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " ';'.";
                 return false;
             }
 
@@ -300,7 +298,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) || token != '<')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '<'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '<'.";
                 return false;
             }
 
@@ -314,7 +312,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != ';')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " ';'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " ';'.";
                 return false;
             }
 
@@ -328,7 +326,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token) || token != '>')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '>'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '>'.";
                 return false;
             }
 
@@ -337,7 +335,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || !IsSmallLetter(token))
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " a small letter.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " a small letter.";
                 return false;
             }
             
@@ -346,7 +344,7 @@ namespace Compiler
             if (!TryGetNextToken(out token) || token != ';')
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " ';'.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " ';'.";
                 return false;
             }
 
@@ -361,14 +359,8 @@ namespace Compiler
                 return false;
             }
             
-            if (TryLookAHead(out char nextToken))
-            {
-                errorMsg = unexpectedTokenErrorMsg + " unknown.";
-                return false;
-            }
-            
             //{('+' | '-') T}
-            while (nextToken == '+' || nextToken == '-')
+            while (TryLookAHead(out char nextToken) && (nextToken == '+' || nextToken == '-'))
             {
                 //We know next token exist and next token is '+' or '-' so straight get next token
                 TryGetNextToken(out char token);
@@ -376,12 +368,6 @@ namespace Compiler
                 //T
                 if (!T())
                 {
-                    return false;
-                }
-                
-                if (TryLookAHead(out nextToken))
-                {
-                    errorMsg = unexpectedTokenErrorMsg + " unknown.";
                     return false;
                 }
             }
@@ -396,15 +382,9 @@ namespace Compiler
             {
                 return false;
             }
-            
-            if (TryLookAHead(out char nextToken))
-            {
-                errorMsg = unexpectedTokenErrorMsg + " unknown.";
-                return false;
-            }
-            
+
             //{('*' | '/' | '%') U}
-            while (nextToken == '*' || nextToken == '/' || nextToken == '%')
+            while (TryLookAHead(out char nextToken) && (nextToken == '*' || nextToken == '/' || nextToken == '%'))
             {
                 //We know next token exist and next token is '*' or '/' or '%' so straight get next token
                 TryGetNextToken(out char token);
@@ -412,12 +392,6 @@ namespace Compiler
                 //U
                 if (!U())
                 {
-                    return false;
-                }
-                
-                if (TryLookAHead(out nextToken))
-                {
-                    errorMsg = unexpectedTokenErrorMsg + " unknown.";
                     return false;
                 }
             }
@@ -455,7 +429,7 @@ namespace Compiler
             if (!TryGetNextToken(out char token))
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '(' or a small letter or a numeral.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '(' or a small letter or a numeral.";
                 return false;
             }
             
@@ -473,14 +447,14 @@ namespace Compiler
                 if (!TryGetNextToken(out token) || token != ')')
                 {
                     Revert(revertPoint);
-                    errorMsg = unexpectedTokenErrorMsg + " ')'.";
+                    errorMsg = unexpectedTokenErrorMsgWithExplanation + " ')'.";
                     return false;
                 }
             }
             else if (!IsSmallLetter(token) && !IsNumber(token))
             {
                 Revert(revertPoint);
-                errorMsg = unexpectedTokenErrorMsg + " '(' or a small letter or a numeral.";
+                errorMsg = unexpectedTokenErrorMsgWithExplanation + " '(' or a small letter or a numeral.";
                 return false;
             }
 
@@ -517,7 +491,7 @@ namespace Compiler
                     {
                         if (++_lineIndex >= _sourceCode.Count)
                         {
-                            errorMsg = unexpectedTokenErrorMsg;
+                            errorMsg = unexpectedTokenErrorMsgWithExplanation;
                             c = ' ';
                             --_lineIndex;
                             return false;
